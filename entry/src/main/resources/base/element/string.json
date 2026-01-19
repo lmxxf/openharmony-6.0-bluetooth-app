@@ -1,0 +1,28 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "蓝牙文件传输模块"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "蓝牙文件传输应用"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "蓝牙传输"
+    },
+    {
+      "name": "bluetooth_reason",
+      "value": "需要蓝牙权限以实现设备发现和数据传输"
+    },
+    {
+      "name": "location_reason",
+      "value": "蓝牙扫描需要位置权限"
+    },
+    {
+      "name": "file_reason",
+      "value": "需要文件读写权限以传输文件"
+    }
+  ]
+}
