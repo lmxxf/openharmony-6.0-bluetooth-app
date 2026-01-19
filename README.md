@@ -345,7 +345,25 @@ class BluetoothService {
 - 发现问题：手机系统蓝牙分享用 OBEX 协议，与 SPP 不兼容
 - 需要开发 Android 端配套 App（Kotlin）
 
-### 10. 下一步
+### 10. 吐槽：为什么鸿蒙和 Android 通信这么费劲
+
+**根本原因**：鸿蒙想和 Android 切割，但又不得不兼容蓝牙标准。结果就是：
+
+1. **API 乱七八糟** —— OpenHarmony 6.0 的蓝牙 API 改来改去，文档跟不上代码，ArkTS 语法限制一堆
+2. **SPP 能用但没生态** —— Android 系统分享走的是 OBEX/OPP，两边协议不通
+3. **华为的"遥遥领先"** —— 只在华为设备之间好用（Huawei Share），跨平台就是灾难
+
+**讽刺的是**：
+- 蓝牙本来就是通用标准，设计初衷就是跨设备互通
+- 结果华为搞了个"自主可控"的 OpenHarmony，反而和 Android 通信更难了
+- 最后还得自己写两端 App 才能传个文件
+
+**替代方案**（如果不想写 Android App）：
+1. **用 WiFi 直连** —— 两边都支持 HTTP，写个简单 Web 服务器更快
+2. **用云盘中转** —— 最蠢但最省事
+3. **用 ADB** —— 如果只是调试用
+
+### 11. 下一步
 
 在新的开发会话中，创建 Android 端配套 App：
 1. 新建 Android 项目（Kotlin，Jetpack Compose 或传统 View）
