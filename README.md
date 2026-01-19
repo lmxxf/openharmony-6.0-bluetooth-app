@@ -189,16 +189,134 @@ entry/src/main/
   分块发送，每块 990 字节
 ```
 
-### 6. 待解决问题
+### 6. 待开发：Android 端配套 App
 
-当前编译错误：
+当前 OpenHarmony 端已完成，但需要 Android 端配套 App 才能实现文件传输。
+
+#### 问题
+- 系统自带的蓝牙文件分享使用 **OBEX/OPP 协议**，与 SPP 不兼容
+- 需要一个 Android App 作为 SPP 客户端
+
+#### Android App 需求
+- 语言：Kotlin
+- 最低 SDK：Android 6.0 (API 23)
+- 目标设备：一加 13 (Android 15)
+
+#### Android App 功能设计
+1. **蓝牙权限申请**
+   - `BLUETOOTH_CONNECT`
+   - `BLUETOOTH_SCAN`（如需扫描）
+
+2. **获取已配对设备列表**
+   ```kotlin
+   val pairedDevices = bluetoothAdapter.bondedDevices
+   ```
+
+3. **SPP 连接**
+   ```kotlin
+   val uuid = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+   val socket = device.createRfcommSocketToServiceRecord(uuid)
+   socket.connect()
+   ```
+
+4. **文件传输协议**（与 OpenHarmony 端一致）
+   ```
+   文件头 (12 + N 字节):
+     [0-3]   Magic: "FILE" (0x46 0x49 0x4C 0x45)
+     [4-7]   文件名长度 (uint32, little-endian)
+     [8-11]  文件大小 (uint32, little-endian)
+     [12-N]  文件名 (UTF-8)
+
+   文件数据:
+     分块发送，每块 990 字节
+   ```
+
+5. **UI 界面**
+   - 已配对设备列表
+   - 连接/断开按钮
+   - 选择文件发送
+   - 接收文件保存
+
+#### Android 项目结构（建议）
 ```
-arkts-no-structural-typing
-Structural typing is not supported
-At File: BluetoothService.ets:275:70
+android-app/
+├── app/src/main/
+│   ├── java/com/example/btfiletransfer/
+│   │   ├── MainActivity.kt
+│   │   ├── BluetoothService.kt
+│   │   └── FileTransferProtocol.kt
+│   ├── res/layout/
+│   │   └── activity_main.xml
+│   └── AndroidManifest.xml
+└── build.gradle.kts
 ```
 
-可能原因：ArkTS 对类型转换有严格限制，需要进一步调整代码。
+#### 关键代码片段
+
+**BluetoothService.kt**
+```kotlin
+class BluetoothService {
+    private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb")
+    private var socket: BluetoothSocket? = null
+
+    fun connect(device: BluetoothDevice) {
+        socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
+        socket?.connect()
+    }
+
+    fun sendFile(fileName: String, data: ByteArray) {
+        val outputStream = socket?.outputStream ?: return
+
+        // 发送文件头
+        val nameBytes = fileName.toByteArray(Charsets.UTF_8)
+        val header = ByteBuffer.allocate(12 + nameBytes.size)
+            .order(ByteOrder.LITTLE_ENDIAN)
+            .put("FILE".toByteArray())
+            .putInt(nameBytes.size)
+            .putInt(data.size)
+            .put(nameBytes)
+            .array()
+        outputStream.write(header)
+
+        // 分块发送数据
+        val chunkSize = 990
+        var offset = 0
+        while (offset < data.size) {
+            val end = minOf(offset + chunkSize, data.size)
+            outputStream.write(data, offset, end - offset)
+            offset = end
+        }
+    }
+
+    fun receiveFile(): Pair<String, ByteArray>? {
+        val inputStream = socket?.inputStream ?: return null
+
+        // 读取文件头
+        val headerStart = ByteArray(12)
+        inputStream.read(headerStart)
+
+        val buffer = ByteBuffer.wrap(headerStart).order(ByteOrder.LITTLE_ENDIAN)
+        val magic = String(headerStart.sliceArray(0..3))
+        if (magic != "FILE") return null
+
+        val nameLen = buffer.getInt(4)
+        val fileSize = buffer.getInt(8)
+
+        val nameBytes = ByteArray(nameLen)
+        inputStream.read(nameBytes)
+        val fileName = String(nameBytes, Charsets.UTF_8)
+
+        // 读取文件数据
+        val fileData = ByteArray(fileSize)
+        var received = 0
+        while (received < fileSize) {
+            received += inputStream.read(fileData, received, fileSize - received)
+        }
+
+        return Pair(fileName, fileData)
+    }
+}
+```
 
 ### 7. 使用说明（待测试）
 
@@ -223,4 +341,14 @@ At File: BluetoothService.ets:275:70
 - 遇到大量 API 兼容性问题
 - 切换到 SPP 方案
 - 解决权限问题、ArkTS 语法问题
-- 当前卡在 structural typing 错误
+- 解决 structural typing 错误，编译通过
+- 发现问题：手机系统蓝牙分享用 OBEX 协议，与 SPP 不兼容
+- 需要开发 Android 端配套 App（Kotlin）
+
+### 10. 下一步
+
+在新的开发会话中，创建 Android 端配套 App：
+1. 新建 Android 项目（Kotlin，Jetpack Compose 或传统 View）
+2. 实现 SPP 客户端连接
+3. 实现相同的文件传输协议
+4. 测试双向文件传输
