@@ -363,10 +363,47 @@ class BluetoothService {
 2. **用云盘中转** —— 最蠢但最省事
 3. **用 ADB** —— 如果只是调试用
 
-### 11. 下一步
+### 11. 设备文件路径与 hdc 调试
 
-在新的开发会话中，创建 Android 端配套 App：
-1. 新建 Android 项目（Kotlin，Jetpack Compose 或传统 View）
-2. 实现 SPP 客户端连接
-3. 实现相同的文件传输协议
-4. 测试双向文件传输
+#### OpenHarmony 设备路径
+
+| 用途 | 路径 | 说明 |
+|------|------|------|
+| **下载目录** | `/storage/media/100/local/files/Docs/Download/` | DocumentViewPicker 可访问 |
+| **文档目录** | `/storage/media/100/local/files/Docs/Documents/` | DocumentViewPicker 可访问 |
+| **图片目录** | `/storage/media/100/local/files/Pictures/` | 相册可见 |
+| **应用私有目录** | `/data/app/el2/100/base/com.example.myapplication/files/` | 应用内部存储 |
+| **应用安装目录** | `/data/app/el1/bundle/public/com.example.myapplication/` | HAP 安装位置 |
+| **临时目录** | `/data/local/tmp/` | hdc 可写，应用不可见 |
+
+#### hdc 常用命令
+
+```powershell
+# 发文件到 OpenHarmony 下载目录（应用可通过 DocumentViewPicker 选择）
+hdc file send C:\test.txt /storage/media/100/local/files/Docs/Download/test.txt
+
+# 从 OpenHarmony 取文件
+hdc file recv /storage/media/100/local/files/Docs/Download/xxx.txt C:\xxx.txt
+
+# 查看目录
+hdc shell ls -la /storage/media/100/local/files/Docs/Download/
+
+# 查看应用数据目录
+hdc shell ls -la /data/app/el2/100/base/com.example.myapplication/files/
+```
+
+#### 注意事项
+
+1. **DocumentViewPicker 只能访问用户目录**（Download、Documents、Pictures 等），不能访问 `/data/local/tmp/`
+2. **接收的文件默认只在内存中**，需要用户点"保存"按钮才会写入磁盘
+3. **设备时钟可能未同步**（显示 2017 年），不影响功能
+
+### 12. 相关项目
+
+- [Android 端配套应用](https://github.com/lmxxf/Android-Bluetooth-File-Transfer-For-Openharmony-6.0-Bluetooth-App) - Android 端蓝牙文件传输 App
+
+### 13. 下一步
+
+- [ ] 测试大文件传输稳定性
+- [ ] 添加传输进度显示
+- [ ] 自动保存接收的文件到下载目录
