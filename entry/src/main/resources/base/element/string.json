@@ -1,6 +1,10 @@
 {
   "string": [
     {
+      "name": "app_name",
+      "value": "蓝牙传输"
+    },
+    {
       "name": "module_desc",
       "value": "蓝牙文件传输模块"
     },
